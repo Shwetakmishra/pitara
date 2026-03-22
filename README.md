@@ -88,19 +88,6 @@ python3 bot.py
 
 ---
 
-## What is coming next
-
-- Image understanding — send a photo, Pitara reflects on 
-  what it sees
-- Smarter memory — finds patterns across everything you 
-  have ever saved
-- Weekly reflection — a summary of what you have been 
-  drawn to lately
-- Place discovery — cafe and travel suggestions based on 
-  your actual taste
-
----
-
 ## Built by
 
 Shweta Kumari — Product Manager
