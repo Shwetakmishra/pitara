@@ -2,7 +2,7 @@ import json
 import os
 import tempfile
 import pytest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
 
 # We'll import from bot after patching the memory path
@@ -66,9 +66,6 @@ def test_save_entry_timestamp_format(tmp_path):
     # Should parse without error
     datetime.strptime(ts, "%Y-%m-%d %H:%M")
 
-
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 @pytest.mark.asyncio
