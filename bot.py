@@ -67,17 +67,38 @@ def save_entry(entry_type, content, claude_response):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
 
+    # Trigger: reflection on past entries
+    if user_message.strip().lower() == "what have i been thinking about?":
+        memory = load_memory()
+        if not memory["entries"]:
+            await update.message.reply_text("No memories yet — start sharing things with me!")
+            return
+        entries_text = "\n".join(
+            f"{i+1}. [{e['timestamp']}] ({e['type']}) {e['content']}"
+            for i, e in enumerate(memory["entries"])
+        )
+        response = claude.messages.create(
+            model=MODEL,
+            max_tokens=1024,
+            system="You are a reflective assistant.",
+            messages=[{
+                "role": "user",
+                "content": f"{entries_text}\n\nLooking at these entries, what themes and patterns do you notice in what I've been thinking about?"
+            }]
+        )
+        await update.message.reply_text(response.content[0].text)
+        return
+
+    # Normal message
     response = claude.messages.create(
         model=MODEL,
         max_tokens=1024,
         system=SYSTEM_PROMPT,
-        messages=[
-            {"role": "user", "content": user_message}
-        ]
+        messages=[{"role": "user", "content": user_message}]
     )
-    
     reply = response.content[0].text
     await update.message.reply_text(reply)
+    save_entry("text", user_message, reply)
 
 if __name__ == "__main__":
     print("Pitara is waking up...")
