@@ -5,7 +5,7 @@ from datetime import datetime
 import anthropic
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
 load_dotenv()
 
@@ -176,9 +176,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Sorry, I had trouble processing that image. Try again?")
         raise
 
+
+async def handle_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    clear_history(user_id)
+    await update.message.reply_text("Starting a fresh page ✨")
+
+
 if __name__ == "__main__":
     print("Pitara is waking up...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    app.add_handler(CommandHandler(["new", "clear"], handle_clear))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     print("Pitara is running. Open Telegram and say something.")

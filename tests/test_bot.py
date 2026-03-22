@@ -336,3 +336,41 @@ async def test_handle_photo_adds_placeholder_with_caption(tmp_path):
 
     history = bot.get_history(8)
     assert '[sent an image: "morning mist over the lake"]' in history[0]["content"]
+
+
+# ── handle_clear ──────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_handle_clear_resets_history():
+    import bot
+    bot.conversation_histories = {}
+
+    user_id = 77
+    bot.add_to_history(user_id, "user", "hello")
+    bot.add_to_history(user_id, "assistant", "hi there")
+
+    update = MagicMock()
+    update.effective_user.id = user_id
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    await bot.handle_clear(update, context)
+
+    assert bot.get_history(user_id) == []
+
+
+@pytest.mark.asyncio
+async def test_handle_clear_replies_warmly():
+    import bot
+    bot.conversation_histories = {}
+
+    update = MagicMock()
+    update.effective_user.id = 55
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    await bot.handle_clear(update, context)
+
+    update.message.reply_text.assert_called_once()
+    reply = update.message.reply_text.call_args[0][0]
+    assert "fresh" in reply.lower() or "✨" in reply
