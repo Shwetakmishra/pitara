@@ -128,6 +128,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        user_id = update.effective_user.id
+
         # Download highest-resolution photo (last in list)
         photo = update.message.photo[-1]
         file = await photo.get_file()
@@ -138,11 +140,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_text = f"I sent this with the caption: {caption}. " if caption else ""
         user_text += "Please describe what you see in this image and ask me one question about what caught my attention."
 
+        history = get_history(user_id)
         response = claude.messages.create(
             model=MODEL,
             max_tokens=1024,
             system=SYSTEM_PROMPT,
-            messages=[{
+            messages=history + [{
                 "role": "user",
                 "content": [
                     {
@@ -159,6 +162,13 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         reply = response.content[0].text
         await update.message.reply_text(reply)
+
+        # Store text placeholder in history (not raw image bytes)
+        description = caption if caption else reply
+        truncated = description[:80] + ("..." if len(description) > 80 else "")
+        placeholder = f'[sent an image: "{truncated}"]'
+        add_to_history(user_id, "user", placeholder)
+        add_to_history(user_id, "assistant", reply)
 
         content = caption if caption else reply
         save_entry("image", content, reply)

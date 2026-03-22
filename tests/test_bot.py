@@ -274,3 +274,61 @@ async def test_handle_message_adds_to_history(tmp_path):
     assert len(history) == 2
     assert history[0] == {"role": "user", "content": "I found a cool moss formation"}
     assert history[1] == {"role": "assistant", "content": "Moss is amazing!"}
+
+
+# ── handle_photo with history ─────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_handle_photo_adds_placeholder_no_caption(tmp_path):
+    import bot
+    bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
+
+    photo_mock = MagicMock()
+    file_mock = AsyncMock()
+    file_mock.download_as_bytearray = AsyncMock(return_value=bytearray(b"fakejpeg"))
+    photo_mock.get_file = AsyncMock(return_value=file_mock)
+
+    update = MagicMock()
+    update.effective_user.id = 7
+    update.message.photo = [photo_mock]
+    update.message.caption = None
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    with patch.object(bot.claude.messages, "create") as mock_create:
+        mock_create.return_value.content = [MagicMock(text="A sunlit path through a forest.")]
+        await bot.handle_photo(update, context)
+
+    history = bot.get_history(7)
+    assert len(history) == 2
+    assert history[0]["role"] == "user"
+    assert "[sent an image:" in history[0]["content"]
+    assert "sunlit path" in history[0]["content"]
+    assert history[1] == {"role": "assistant", "content": "A sunlit path through a forest."}
+
+
+@pytest.mark.asyncio
+async def test_handle_photo_adds_placeholder_with_caption(tmp_path):
+    import bot
+    bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
+
+    photo_mock = MagicMock()
+    file_mock = AsyncMock()
+    file_mock.download_as_bytearray = AsyncMock(return_value=bytearray(b"fakejpeg"))
+    photo_mock.get_file = AsyncMock(return_value=file_mock)
+
+    update = MagicMock()
+    update.effective_user.id = 8
+    update.message.photo = [photo_mock]
+    update.message.caption = "morning mist over the lake"
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    with patch.object(bot.claude.messages, "create") as mock_create:
+        mock_create.return_value.content = [MagicMock(text="Serene and still.")]
+        await bot.handle_photo(update, context)
+
+    history = bot.get_history(8)
+    assert '[sent an image: "morning mist over the lake"]' in history[0]["content"]
