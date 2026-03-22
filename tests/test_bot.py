@@ -61,8 +61,10 @@ def test_save_entry_timestamp_format(tmp_path):
 async def test_handle_message_saves_to_memory(tmp_path):
     import bot
     bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
 
     update = MagicMock()
+    update.effective_user.id = 1
     update.message.text = "I found a cool moss formation"
     update.message.reply_text = AsyncMock()
     context = MagicMock()
@@ -81,8 +83,10 @@ async def test_handle_message_saves_to_memory(tmp_path):
 async def test_handle_message_trigger_empty_memory(tmp_path):
     import bot
     bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
 
     update = MagicMock()
+    update.effective_user.id = 2
     update.message.text = "what have I been thinking about?"
     update.message.reply_text = AsyncMock()
     context = MagicMock()
@@ -100,11 +104,13 @@ async def test_handle_message_trigger_empty_memory(tmp_path):
 async def test_handle_message_trigger_with_entries(tmp_path):
     import bot
     bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
     # Pre-populate memory
     data = {"entries": [{"timestamp": "2026-03-22 10:00", "type": "text", "content": "birds", "claude_response": "nice"}]}
     (tmp_path / "memory.json").write_text(json.dumps(data))
 
     update = MagicMock()
+    update.effective_user.id = 3
     update.message.text = "What have I been thinking about?"
     update.message.reply_text = AsyncMock()
     context = MagicMock()
