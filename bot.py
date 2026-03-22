@@ -170,8 +170,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         add_to_history(user_id, "user", placeholder)
         add_to_history(user_id, "assistant", reply)
 
-        content = caption if caption else reply
-        save_entry("image", content, reply)
+        save_entry("image", description, reply)
 
     except Exception as e:
         await update.message.reply_text("Sorry, I had trouble processing that image. Try again?")

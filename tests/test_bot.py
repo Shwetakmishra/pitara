@@ -129,6 +129,7 @@ async def test_handle_message_trigger_with_entries(tmp_path):
 async def test_handle_photo_no_caption(tmp_path):
     import bot
     bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
 
     photo_mock = MagicMock()
     photo_mock.file_id = "abc123"
@@ -137,6 +138,7 @@ async def test_handle_photo_no_caption(tmp_path):
     photo_mock.get_file = AsyncMock(return_value=file_mock)
 
     update = MagicMock()
+    update.effective_user.id = 4
     update.message.photo = [photo_mock]
     update.message.caption = None
     update.message.reply_text = AsyncMock()
@@ -158,6 +160,7 @@ async def test_handle_photo_no_caption(tmp_path):
 async def test_handle_photo_with_caption(tmp_path):
     import bot
     bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
 
     photo_mock = MagicMock()
     file_mock = AsyncMock()
@@ -165,6 +168,7 @@ async def test_handle_photo_with_caption(tmp_path):
     photo_mock.get_file = AsyncMock(return_value=file_mock)
 
     update = MagicMock()
+    update.effective_user.id = 5
     update.message.photo = [photo_mock]
     update.message.caption = "morning light through the trees"
     update.message.reply_text = AsyncMock()
