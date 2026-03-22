@@ -65,6 +65,26 @@ def save_entry(entry_type, content, claude_response):
         json.dump(memory, f, indent=2)
 
 
+# ── per-user conversation history (in-memory, resets on restart) ──────────
+
+conversation_histories: dict = {}
+
+
+def get_history(user_id: int) -> list:
+    if user_id not in conversation_histories:
+        conversation_histories[user_id] = []
+    return conversation_histories[user_id]
+
+
+def add_to_history(user_id: int, role: str, content: str) -> None:
+    get_history(user_id).append({"role": role, "content": content})
+    conversation_histories[user_id] = conversation_histories[user_id][-20:]
+
+
+def clear_history(user_id: int) -> None:
+    conversation_histories[user_id] = []
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
 

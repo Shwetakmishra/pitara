@@ -172,3 +172,49 @@ async def test_handle_photo_with_caption(tmp_path):
     data = json.loads((tmp_path / "memory.json").read_text())
     entry = data["entries"][0]
     assert entry["content"] == "morning light through the trees"
+
+
+# ── conversation history helpers ──────────────────────────────────────────
+
+def test_get_history_new_user():
+    import bot
+    bot.conversation_histories = {}
+    result = bot.get_history(123)
+    assert result == []
+
+
+def test_get_history_existing_user():
+    import bot
+    bot.conversation_histories = {}
+    bot.conversation_histories[42] = [{"role": "user", "content": "hi"}]
+    result = bot.get_history(42)
+    assert result == [{"role": "user", "content": "hi"}]
+
+
+def test_add_to_history_appends():
+    import bot
+    bot.conversation_histories = {}
+    bot.add_to_history(1, "user", "hello")
+    bot.add_to_history(1, "assistant", "world")
+    assert bot.conversation_histories[1] == [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "world"},
+    ]
+
+
+def test_add_to_history_trims_to_20():
+    import bot
+    bot.conversation_histories = {}
+    for i in range(22):
+        bot.add_to_history(1, "user", f"msg {i}")
+    assert len(bot.conversation_histories[1]) == 20
+    assert bot.conversation_histories[1][0]["content"] == "msg 2"
+    assert bot.conversation_histories[1][-1]["content"] == "msg 21"
+
+
+def test_clear_history():
+    import bot
+    bot.conversation_histories = {}
+    bot.add_to_history(5, "user", "hello")
+    bot.clear_history(5)
+    assert bot.conversation_histories[5] == []
