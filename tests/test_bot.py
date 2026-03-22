@@ -128,3 +128,58 @@ async def test_handle_message_trigger_with_entries(tmp_path):
     # Trigger response should NOT be saved to memory
     data_after = json.loads((tmp_path / "memory.json").read_text())
     assert len(data_after["entries"]) == 1  # still 1, not 2
+
+
+@pytest.mark.asyncio
+async def test_handle_photo_no_caption(tmp_path):
+    import bot
+    bot.MEMORY_FILE = str(tmp_path / "memory.json")
+
+    photo_mock = MagicMock()
+    photo_mock.file_id = "abc123"
+    file_mock = AsyncMock()
+    file_mock.download_as_bytearray = AsyncMock(return_value=bytearray(b"fakejpegbytes"))
+    photo_mock.get_file = AsyncMock(return_value=file_mock)
+
+    update = MagicMock()
+    update.message.photo = [photo_mock]
+    update.message.caption = None
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    with patch.object(bot.claude.messages, "create") as mock_create:
+        mock_create.return_value.content = [MagicMock(text="I see a forest path. What drew you to photograph it?")]
+        await bot.handle_photo(update, context)
+
+    # Without caption, content saved should be Claude's description
+    data = json.loads((tmp_path / "memory.json").read_text())
+    assert len(data["entries"]) == 1
+    entry = data["entries"][0]
+    assert entry["type"] == "image"
+    assert entry["content"] == "I see a forest path. What drew you to photograph it?"
+
+
+@pytest.mark.asyncio
+async def test_handle_photo_with_caption(tmp_path):
+    import bot
+    bot.MEMORY_FILE = str(tmp_path / "memory.json")
+
+    photo_mock = MagicMock()
+    file_mock = AsyncMock()
+    file_mock.download_as_bytearray = AsyncMock(return_value=bytearray(b"fakejpegbytes"))
+    photo_mock.get_file = AsyncMock(return_value=file_mock)
+
+    update = MagicMock()
+    update.message.photo = [photo_mock]
+    update.message.caption = "morning light through the trees"
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    with patch.object(bot.claude.messages, "create") as mock_create:
+        mock_create.return_value.content = [MagicMock(text="Beautiful golden light! What time was this?")]
+        await bot.handle_photo(update, context)
+
+    # With caption, content saved should be the caption
+    data = json.loads((tmp_path / "memory.json").read_text())
+    entry = data["entries"][0]
+    assert entry["content"] == "morning light through the trees"

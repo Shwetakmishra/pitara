@@ -100,9 +100,46 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply)
     save_entry("text", user_message, reply)
 
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Download highest-resolution photo (last in list)
+    photo = update.message.photo[-1]
+    file = await photo.get_file()
+    photo_bytes = await file.download_as_bytearray()
+    image_data = base64.standard_b64encode(bytes(photo_bytes)).decode("utf-8")
+
+    caption = update.message.caption
+    user_text = f"I sent this with the caption: {caption}. " if caption else ""
+    user_text += "Please describe what you see in this image and ask me one question about what caught my attention."
+
+    response = claude.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        system=SYSTEM_PROMPT,
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/jpeg",
+                        "data": image_data,
+                    },
+                },
+                {"type": "text", "text": user_text},
+            ],
+        }]
+    )
+    reply = response.content[0].text
+    await update.message.reply_text(reply)
+
+    content = caption if caption else reply
+    save_entry("image", content, reply)
+
 if __name__ == "__main__":
     print("Pitara is waking up...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     print("Pitara is running. Open Telegram and say something.")
     app.run_polling()
