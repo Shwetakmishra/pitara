@@ -86,9 +86,10 @@ def clear_history(user_id: int) -> None:
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     user_message = update.message.text
 
-    # Trigger: reflection on past entries
+    # Trigger: reflection on past entries (bypasses conversation history)
     if user_message.strip().lower() == "what have i been thinking about?":
         memory = load_memory()
         if not memory["entries"]:
@@ -110,15 +111,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(response.content[0].text)
         return
 
-    # Normal message
+    # Normal message — pass full history to Claude
+    history = get_history(user_id)
     response = claude.messages.create(
         model=MODEL,
         max_tokens=1024,
         system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}]
+        messages=history + [{"role": "user", "content": user_message}]
     )
     reply = response.content[0].text
     await update.message.reply_text(reply)
+    add_to_history(user_id, "user", user_message)
+    add_to_history(user_id, "assistant", reply)
     save_entry("text", user_message, reply)
 
 

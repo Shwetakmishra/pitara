@@ -218,3 +218,53 @@ def test_clear_history():
     bot.add_to_history(5, "user", "hello")
     bot.clear_history(5)
     assert bot.conversation_histories[5] == []
+
+
+# ── handle_message with history ───────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_handle_message_passes_history_to_claude(tmp_path):
+    import bot
+    bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
+
+    user_id = 42
+    bot.add_to_history(user_id, "user", "I love sunsets")
+    bot.add_to_history(user_id, "assistant", "They are magical")
+
+    update = MagicMock()
+    update.effective_user.id = user_id
+    update.message.text = "I saw one today"
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    with patch.object(bot.claude.messages, "create") as mock_create:
+        mock_create.return_value.content = [MagicMock(text="What colours did you see?")]
+        await bot.handle_message(update, context)
+
+    call_messages = mock_create.call_args.kwargs["messages"]
+    assert call_messages[0] == {"role": "user", "content": "I love sunsets"}
+    assert call_messages[1] == {"role": "assistant", "content": "They are magical"}
+    assert call_messages[2] == {"role": "user", "content": "I saw one today"}
+
+
+@pytest.mark.asyncio
+async def test_handle_message_adds_to_history(tmp_path):
+    import bot
+    bot.MEMORY_FILE = str(tmp_path / "memory.json")
+    bot.conversation_histories = {}
+
+    update = MagicMock()
+    update.effective_user.id = 99
+    update.message.text = "I found a cool moss formation"
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    with patch.object(bot.claude.messages, "create") as mock_create:
+        mock_create.return_value.content = [MagicMock(text="Moss is amazing!")]
+        await bot.handle_message(update, context)
+
+    history = bot.get_history(99)
+    assert len(history) == 2
+    assert history[0] == {"role": "user", "content": "I found a cool moss formation"}
+    assert history[1] == {"role": "assistant", "content": "Moss is amazing!"}
