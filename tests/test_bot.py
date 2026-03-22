@@ -5,17 +5,6 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
 
-# We'll import from bot after patching the memory path
-import importlib
-
-
-def make_bot(memory_path):
-    """Re-import bot with MEMORY_FILE patched to a temp path."""
-    import bot
-    bot.MEMORY_FILE = memory_path
-    return bot
-
-
 def test_load_memory_missing_file(tmp_path):
     import bot
     bot.MEMORY_FILE = str(tmp_path / "memory.json")

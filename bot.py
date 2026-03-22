@@ -64,6 +64,7 @@ def save_entry(entry_type, content, claude_response):
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f, indent=2)
 
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
 
@@ -100,41 +101,47 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply)
     save_entry("text", user_message, reply)
 
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Download highest-resolution photo (last in list)
-    photo = update.message.photo[-1]
-    file = await photo.get_file()
-    photo_bytes = await file.download_as_bytearray()
-    image_data = base64.standard_b64encode(bytes(photo_bytes)).decode("utf-8")
+    try:
+        # Download highest-resolution photo (last in list)
+        photo = update.message.photo[-1]
+        file = await photo.get_file()
+        photo_bytes = await file.download_as_bytearray()
+        image_data = base64.standard_b64encode(bytes(photo_bytes)).decode("utf-8")
 
-    caption = update.message.caption
-    user_text = f"I sent this with the caption: {caption}. " if caption else ""
-    user_text += "Please describe what you see in this image and ask me one question about what caught my attention."
+        caption = update.message.caption
+        user_text = f"I sent this with the caption: {caption}. " if caption else ""
+        user_text += "Please describe what you see in this image and ask me one question about what caught my attention."
 
-    response = claude.messages.create(
-        model=MODEL,
-        max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{
-            "role": "user",
-            "content": [
-                {
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "image/jpeg",
-                        "data": image_data,
+        response = claude.messages.create(
+            model=MODEL,
+            max_tokens=1024,
+            system=SYSTEM_PROMPT,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/jpeg",
+                            "data": image_data,
+                        },
                     },
-                },
-                {"type": "text", "text": user_text},
-            ],
-        }]
-    )
-    reply = response.content[0].text
-    await update.message.reply_text(reply)
+                    {"type": "text", "text": user_text},
+                ],
+            }]
+        )
+        reply = response.content[0].text
+        await update.message.reply_text(reply)
 
-    content = caption if caption else reply
-    save_entry("image", content, reply)
+        content = caption if caption else reply
+        save_entry("image", content, reply)
+
+    except Exception as e:
+        await update.message.reply_text("Sorry, I had trouble processing that image. Try again?")
+        raise
 
 if __name__ == "__main__":
     print("Pitara is waking up...")
